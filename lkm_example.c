@@ -3,10 +3,6 @@
 #include <linux/kernel.h>
 #include <linux/fs.h>
 #include <asm/uaccess.h>
-#include <openssl/conf.h>
-#include <openssl/evp.h>
-#include <openssl/err.h>
-#include <string.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("");
