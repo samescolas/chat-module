@@ -72,9 +72,15 @@ static ssize_t device_read(struct file *flip, char *buffer, size_t len, loff_t *
 /* Called when a process tries to write to our device */
 static ssize_t device_write(struct file *flip, const char *buffer, size_t len, loff_t *offset)
 {
-	/* This is a read-only device */
-	printk(KERN_ALERT "This operation is not supported.\n");
-	return (-EINVAL);
+	int		i = 0;
+
+	for (i=0; i < len && i < MSG_BUFFER_LEN; i++)
+	{
+		get_user(msg_buffer[i], buffer + i);
+	}
+	msg_ptr = msg_buffer;
+
+	return (i);
 }
 
 /* Called when a process closes our device */

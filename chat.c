@@ -37,6 +37,7 @@ int		main(int argc, char **argv)
 			read(fd, &buf, BUF_LEN);
 			buf[BUF_LEN] = '\0';
 			printf("Message received from %s: %s\n", DEV2, buf);
+			write(fd, "Hey there.\n", 11);
 			return (getchar());
 		}
 	}
@@ -45,6 +46,7 @@ int		main(int argc, char **argv)
 		read(fd, &buf, BUF_LEN);
 		buf[BUF_LEN] = '\0';
 		printf("Message received from %s: %s\n", DEV1, buf);
+		write(fd, "Hey there.\n", 11);
 		return (getchar());
 	}
 	return (0);
