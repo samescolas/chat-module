@@ -40,10 +40,10 @@ static struct file_operations file_ops = {
 static int device_open(struct inode *inode, struct file *file)
 {
 	/* If device is open, return busy */
-	if (device_is_open)
-	{
-		return (-EBUSY);
-	}
+	//if (device_is_open)
+	//{
+		//return (-EBUSY);
+	//}
 	device_is_open++;
 	return (0);
 }
