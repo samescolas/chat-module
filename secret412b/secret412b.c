@@ -55,7 +55,7 @@ static ssize_t device_read(struct file *flip, char *buffer, size_t len, loff_t *
 	/* If we’re at the end, loop back to the beginning */
 	if (*msg_ptr == 0)
 	{
-		msg_ptr = &msg_buffer[1];
+		return (0);
 	}
 	/* Put data in the buffer */
 	while (len && *msg_ptr)
@@ -78,6 +78,7 @@ static ssize_t device_write(struct file *flip, const char *buffer, size_t len, l
 	{
 		get_user(msg_buffer[i], buffer + i);
 	}
+	msg_buffer[i] = '\0';
 	msg_ptr = msg_buffer;
 
 	return (i);
