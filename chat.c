@@ -9,7 +9,7 @@
 #define BUF_LEN 1024
 #define DEVA "/dev/hey"
 #define DEVB "/dev/hi"
-#define DEVICE_NAME_LENGTH 8
+#define DEVICE_NAME_LENGTH 12
 
 int		assign_names(int argc, char **argv, char *me, char *you)
 {
@@ -67,34 +67,34 @@ int		main(int argc, char **argv)
 	}
 
 	int		fds[2];
-	char	read_device[DEVICE_NAME_LENGTH];
-	char	write_device[DEVICE_NAME_LENGTH];
+	char	r_device[DEVICE_NAME_LENGTH];
+	char	wr_device[DEVICE_NAME_LENGTH];
 
-	bzero(read_device, DEVICE_NAME_LENGTH);
-	bzero(write_device, DEVICE_NAME_LENGTH);
+	bzero(r_device, DEVICE_NAME_LENGTH);
+	bzero(wr_device, DEVICE_NAME_LENGTH);
 	/* Users will open opposite files for reading and writing. */
-	strncpy(read_device, me == 'a' ? DEVA : DEVB, DEVICE_NAME_LENGTH);
-	strncpy(write_device, me == 'a' ? DEVB : DEVA, DEVICE_NAME_LENGTH);
-	read_device[DEVICE_NAME_LENGTH] = '\0';
-	write_device[DEVICE_NAME_LENGTH] = '\0';
-	if ((fds[0] = open(read_device, O_RDONLY)) < 0)
+	strncpy(r_device, (me == 'a' ? DEVA : DEVB), DEVICE_NAME_LENGTH);
+	strncpy(wr_device, (me == 'a' ? DEVB : DEVA), DEVICE_NAME_LENGTH);
+  printf("READ: %s\n", r_device);
+  printf("WRITE: %s\n", wr_device);
+	if ((fds[0] = open(r_device, O_RDONLY)) < 0)
 	{
-		printf("Unable to open %s for reading.\n", read_device);
+		printf("Unable to open %s for reading.\n", r_device);
 		return (0);
 	}
 	else
 	{
-		printf("Opened %s for reading.\n", read_device);
+		printf("Opened %s for reading.\n", r_device);
 	}
-	if ((fds[1] = open(write_device, O_WRONLY)) < 0)
+	if ((fds[1] = open(wr_device, O_WRONLY)) < 0)
 	{
-		printf("Unable to open %s for writing.\n", write_device);
+		printf("Unable to open %s for writing.\n", wr_device);
 		close(fds[0]);
 		return (0);
 	}
 	else
 	{
-		printf("Opened %s for writing.\n", write_device);
+		printf("Opened %s for writing.\n", wr_device);
 	}
 
 	pid_t	child = fork();
