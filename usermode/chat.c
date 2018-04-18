@@ -7,9 +7,9 @@
 #include <sys/types.h>
 
 #define BUF_LEN 1024
-#define DEVA "/dev/hey"
-#define DEVB "/dev/hi"
-#define DEVICE_NAME_LENGTH 8
+#define DEVA "/dev/sec4120"
+#define DEVB "/dev/sec4121"
+#define DEVICE_NAME_LENGTH 15
 
 int		assign_names(int argc, char **argv, char *me, char *you)
 {
@@ -42,7 +42,7 @@ void	read_inbox(int fd, char me, char you)
 	while (1)
 	{
 		// Do we want to rate limit these read requests or is this okay?
-		// for (int tl=0; tl<1000000; tl++);
+		for (int tl=0; tl<1000000; tl++);
 		if ((bytes_read = read(fd, &buf, BUF_LEN)) > 0)
 		{
 			// clear current line
@@ -77,25 +77,6 @@ int		main(int argc, char **argv)
 	strncpy(write_device, me == 'a' ? DEVB : DEVA, DEVICE_NAME_LENGTH);
 	read_device[DEVICE_NAME_LENGTH] = '\0';
 	write_device[DEVICE_NAME_LENGTH] = '\0';
-	if ((fds[0] = open(read_device, O_RDONLY)) < 0)
-	{
-		printf("Unable to open %s for reading.\n", read_device);
-		return (0);
-	}
-	else
-	{
-		printf("Opened %s for reading.\n", read_device);
-	}
-	if ((fds[1] = open(write_device, O_WRONLY)) < 0)
-	{
-		printf("Unable to open %s for writing.\n", write_device);
-		close(fds[0]);
-		return (0);
-	}
-	else
-	{
-		printf("Opened %s for writing.\n", write_device);
-	}
 
 	pid_t	child = fork();
 
@@ -103,6 +84,15 @@ int		main(int argc, char **argv)
 	{
 		if (child == 0)
 		{
+			if ((fds[0] = open(read_device, O_RDONLY)) < 0)
+			{
+				printf("Unable to open %s for reading.\n", read_device);
+				return (0);
+			}
+			else
+			{
+				printf("Opened %s for reading.\n", read_device);
+			}
 			read_inbox(fds[0], me, you);
 		}
 		else
@@ -110,6 +100,16 @@ int		main(int argc, char **argv)
 			char	read_buf[BUF_LEN+1];
 			int		bytes;
 
+			if ((fds[1] = open(write_device, O_WRONLY)) < 0)
+			{
+				printf("Unable to open %s for writing.\n", write_device);
+				close(fds[0]);
+				return (0);
+			}
+			else
+			{
+				printf("Opened %s for writing.\n", write_device);
+			}
 			bzero(read_buf, BUF_LEN + 1);
 			while (1)
 			{
