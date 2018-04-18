@@ -102,10 +102,13 @@ static int __init sec412_char_init(void)
    // Register the device dynamically
    //
    g_majornum = register_chrdev(0, DEVICE_NAME, &fops);
-   memset(g_inboxes[0]->data, 0, MAX_ALLOWED_LEN);
-   memset(g_inboxes[1]->data, 0, MAX_ALLOWED_LEN);
-   strncpy(g_inboxes[0]->data, MSG0, MAX_ALLOWED_LEN);
-   strncpy(g_inboxes[1]->data, MSG1, MAX_ALLOWED_LEN);
+   memset(g_inboxes[0].data, 0, MAX_ALLOWED_LEN);
+   memset(g_inboxes[1].data, 0, MAX_ALLOWED_LEN);
+   strncpy(g_inboxes[0].data, MSG0, MAX_ALLOWED_LEN);
+   strncpy(g_inboxes[1].data, MSG1, MAX_ALLOWED_LEN);
+
+   sema_init(&g_inboxes[0].sema, 0);
+   sema_init(&g_inboxes[1].sema, 0);
 
    if( g_majornum < 0 )
    {
@@ -179,9 +182,9 @@ static void __exit sec412_char_exit(void)
 
 }
 
-static int dev_open(struct inode *inode, struct file *filp){
-
-
+static int dev_open(struct inode *inode, struct file *filp)
+{
+   inbox *i = NULL;
    g_minor = NUM(inode->i_rdev);
 
    /*
@@ -190,10 +193,13 @@ static int dev_open(struct inode *inode, struct file *filp){
    	 return -ENOPERM;
    }
    */
-
+   if (g_minor > 0)
+   {
+     i = &g_inboxes[g_minor];
+   }
 
    // Assign correct inbox to file.
-   filp->private_data = g_inboxes[g_minor];
+   filp->private_data = i;
    return 0;
 }
 
@@ -207,21 +213,21 @@ static ssize_t dev_read(struct file *filp, char *buffer, size_t len, loff_t *off
 {
 
    //int error = -1;
-   char	*inbox = filp->private_data->data;
+   inbox	*inbox = filp->private_data;
 
-   if (down_interruptible(&filp->private_data->sem))
+   if (down_interruptible(&inbox->sem))
    {
    	 return -ERESTARTSYS;
    }
-   if (*inbox == 0)
+   if (*inbox->data == 0)
    {
-	 up(&filp->private_data->sem);
+	 up(&inbox->sem);
      return (0);
    }
    // Make sure you are only reading the requested amount!
    //error= copy_to_user(buffer, KERNEL_SOURCE, KERNEL_SOURCE_SIZE);
-   copy_to_user(buffer, inbox, MAX_ALLOWED_LEN);
-   memset(inbox, 0, MAX_ALLOWED_LEN);
+   copy_to_user(buffer, inbox->data, MAX_ALLOWED_LEN);
+   memset(inbox->data, 0, MAX_ALLOWED_LEN);
    //while (len && *g_inboxp)
    //{
      //put_user(g_inboxp[bytes_read], buffer++);
@@ -229,7 +235,7 @@ static ssize_t dev_read(struct file *filp, char *buffer, size_t len, loff_t *off
 	 //len--;
    //}
 
-   up(&filp->private_data->sem);
+   up(&inbox->sem);
    return (MAX_ALLOWED_LEN);
 }
 
@@ -239,19 +245,19 @@ static ssize_t dev_read(struct file *filp, char *buffer, size_t len, loff_t *off
 //
 static ssize_t dev_write(struct file *filp, const char *buffer, size_t len, loff_t *offset)
 {
-   int	bytes_read = 0;
-   char	*data = filp->private_data->data;
+   int		bytes_read = 0;
+   inbox	*inbox = filp->private_data;
 
-   if (down_interruptible(&filp->private_data->sem))
+   if (down_interruptible(&inbox->sem))
    {
    		return -ERESTARTSYS;
    }
    for (bytes_read=0; bytes_read < len && bytes_read < MAX_ALLOWED_LEN; bytes_read++)
    {
-   		get_user(data[bytes_read], buffer + bytes_read);
+   		get_user(inbox->data[bytes_read], buffer + bytes_read);
    }
-   data[bytes_read] = '\0';
-   up(&filp->private_data->sem);
+   inbox->data[bytes_read] = '\0';
+   up(&inbox->sem);
 
    return (bytes_read);
 }
