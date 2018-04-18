@@ -107,8 +107,8 @@ static int __init sec412_char_init(void)
    strncpy(g_inboxes[0].data, MSG0, MAX_ALLOWED_LEN);
    strncpy(g_inboxes[1].data, MSG1, MAX_ALLOWED_LEN);
 
-   sema_init(&g_inboxes[0].sema, 0);
-   sema_init(&g_inboxes[1].sema, 0);
+   //sema_init(&g_inboxes[0].sem, 0);
+   //sema_init(&g_inboxes[1].sem, 0);
 
    if( g_majornum < 0 )
    {
@@ -215,13 +215,13 @@ static ssize_t dev_read(struct file *filp, char *buffer, size_t len, loff_t *off
    //int error = -1;
    inbox	*inbox = filp->private_data;
 
-   if (down_interruptible(&inbox->sem))
-   {
-   	 return -ERESTARTSYS;
-   }
+   //if (down_interruptible(&inbox->sem))
+   //{
+   	 //return -ERESTARTSYS;
+   //}
    if (*inbox->data == 0)
    {
-	 up(&inbox->sem);
+	 //up(&inbox->sem);
      return (0);
    }
    // Make sure you are only reading the requested amount!
@@ -235,7 +235,7 @@ static ssize_t dev_read(struct file *filp, char *buffer, size_t len, loff_t *off
 	 //len--;
    //}
 
-   up(&inbox->sem);
+   //up(&inbox->sem);
    return (MAX_ALLOWED_LEN);
 }
 
@@ -248,16 +248,16 @@ static ssize_t dev_write(struct file *filp, const char *buffer, size_t len, loff
    int		bytes_read = 0;
    inbox	*inbox = filp->private_data;
 
-   if (down_interruptible(&inbox->sem))
-   {
-   		return -ERESTARTSYS;
-   }
+   //if (down_interruptible(&inbox->sem))
+   //{
+   		//return -ERESTARTSYS;
+   //}
    for (bytes_read=0; bytes_read < len && bytes_read < MAX_ALLOWED_LEN; bytes_read++)
    {
    		get_user(inbox->data[bytes_read], buffer + bytes_read);
    }
    inbox->data[bytes_read] = '\0';
-   up(&inbox->sem);
+   //up(&inbox->sem);
 
    return (bytes_read);
 }
