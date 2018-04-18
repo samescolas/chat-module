@@ -64,7 +64,8 @@ static inbox	g_inboxes[2];
 static int		g_minor = 0;
 
 static struct class*  sec412_class  = NULL;
-static struct device* sec412_device = NULL;
+static struct device* sec412a_device = NULL;
+static struct device* sec412b_device = NULL;
 
 //
 // Relevant function prototypes that will be used
@@ -143,9 +144,8 @@ static int __init sec412_char_init(void)
    // NOTE:
    // The MKDEV takes a major/minor pair and creates an appropriate device number
    //
-   sec412_device = device_create(sec412_class, NULL, MKDEV(g_majornum, 0), NULL, DEVICE_NAME);
-
-   if( IS_ERR(sec412_device) )
+   sec412a_device = device_create(sec412_class, NULL, MKDEV(g_majornum, 0), NULL, DEVICE_NAME);
+   if( IS_ERR(sec412a_device))
    {
       class_destroy(sec412_class);
 
@@ -153,8 +153,22 @@ static int __init sec412_char_init(void)
 
       printk("[-] Failed to create device class\n");
 
-      return PTR_ERR(sec412_device);
+      return PTR_ERR(sec412a_device);
    }
+
+   //sec412b_device = device_create(sec412_class, NULL, MKDEV(g_majornum, 1), NULL, DEVICE_NAME);
+
+   //if( IS_ERR(sec412b_device))
+   //{
+	  //device_destroy(sec412_class, MKDEV(g_majornum, 0));     
+      //class_destroy(sec412_class);
+//
+      //unregister_chrdev(g_majornum, DEVICE_NAME);
+//
+      //printk("[-] Failed to create device class\n");
+//
+      //return PTR_ERR(sec412b_device);
+   //}
 
    printk("[+] Module successfully initialized\n");
 
@@ -172,6 +186,7 @@ static void __exit sec412_char_exit(void)
 
    // destroy the created device
    device_destroy(sec412_class, MKDEV(g_majornum, 0));     
+   //device_destroy(sec412_class, MKDEV(g_majornum, 1));     
 
    // unregister the class
    class_unregister(sec412_class);                          
@@ -193,7 +208,7 @@ static int dev_open(struct inode *inode, struct file *filp)
    	 return -ENOPERM;
    }
    */
-   if (g_minor > 0)
+   if (g_minor >= 0)
    {
      i = &g_inboxes[g_minor];
    }

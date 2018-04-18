@@ -78,21 +78,31 @@ int		main(int argc, char **argv)
 	read_device[DEVICE_NAME_LENGTH] = '\0';
 	write_device[DEVICE_NAME_LENGTH] = '\0';
 
+	if ((fds[0] = open(read_device, O_RDONLY)) < 0)
+	{
+		printf("Unable to open %s for reading.\n", read_device);
+		return (0);
+	}
+	else
+	{
+		printf("Opened %s for reading.\n", read_device);
+	}
+	if ((fds[1] = open(write_device, O_WRONLY)) < 0)
+	{
+		printf("Unable to open %s for writing.\n", write_device);
+		close(fds[0]);
+		return (0);
+	}
+	else
+	{
+		printf("Opened %s for writing.\n", write_device);
+	}
 	pid_t	child = fork();
 
 	if (child >= 0)
 	{
 		if (child == 0)
 		{
-			if ((fds[0] = open(read_device, O_RDONLY)) < 0)
-			{
-				printf("Unable to open %s for reading.\n", read_device);
-				return (0);
-			}
-			else
-			{
-				printf("Opened %s for reading.\n", read_device);
-			}
 			read_inbox(fds[0], me, you);
 		}
 		else
@@ -100,16 +110,6 @@ int		main(int argc, char **argv)
 			char	read_buf[BUF_LEN+1];
 			int		bytes;
 
-			if ((fds[1] = open(write_device, O_WRONLY)) < 0)
-			{
-				printf("Unable to open %s for writing.\n", write_device);
-				close(fds[0]);
-				return (0);
-			}
-			else
-			{
-				printf("Opened %s for writing.\n", write_device);
-			}
 			bzero(read_buf, BUF_LEN + 1);
 			while (1)
 			{
