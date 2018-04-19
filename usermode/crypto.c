@@ -90,15 +90,7 @@ int decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key,
 
 int main (void)
 {
-  /* Set up the key and iv. Do I need to say to not hard code these in a
-   * real application? :-)
-   */
-
-  /* A 256 bit key */
-  //unsigned char *key = (unsigned char *)"01234567890123456789012345678901";
   unsigned char key[32];
-
-  /* A 128 bit IV */
   unsigned char iv[16];
 
   if (!RAND_bytes(key, 32))
@@ -142,7 +134,7 @@ int main (void)
   BIO_dump_fp (stdout, (const char *)ciphertext, ciphertext_len);
 
   /* Decrypt the ciphertext */
-  decryptedtext_len = decrypt(ciphertext, ciphertext_len, key, iv,
+  decryptedtext_len = decrypt(ciphertext, 128, key, iv,
     decryptedtext);
 
   /* Add a NULL terminator. We are expecting printable text */

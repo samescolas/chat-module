@@ -21,8 +21,6 @@
 // Required for the copy to user function
 #include <linux/uaccess.h>        
 
-#include <linux/semaphore.h>
-
 // Using a common header file for usermode/kernel mode code
 #include "../common/char_ioctl.h"
 
@@ -41,14 +39,12 @@ MODULE_VERSION("4.10.2018");
 //
 
 #define MAX_ALLOWED_LEN 1024
+#define MAX_KEY_LEN 32
+#define MAX_IV_LEN 16
 #define TYPE(dev) (MINOR(dev) >> 4) /* high nibble */
 #define NUM(dev) (MINOR(dev) & 0xf) /* low nibble */
 
-#define MSG0 "hey there\n"
-#define MSG1 "sup dood\n"
-
 static int    g_majornum;
-static char   g_buffer[MAX_ALLOWED_LEN] = {0};
 
 /*
 	These will represent the inboxes for the devices.
@@ -57,15 +53,16 @@ static char   g_buffer[MAX_ALLOWED_LEN] = {0};
 
 typedef struct inbox {
 	char	data[MAX_ALLOWED_LEN];
-	struct	semaphore sem;
+	char	msglen[10];
+	char	key[32];
+	char	iv[16];
 } inbox;
 
 static inbox	g_inboxes[2];
 static int		g_minor = 0;
 
 static struct class*  sec412_class  = NULL;
-static struct device* sec412a_device = NULL;
-static struct device* sec412b_device = NULL;
+static struct device* sec412_device = NULL;
 
 //
 // Relevant function prototypes that will be used
@@ -105,11 +102,8 @@ static int __init sec412_char_init(void)
    g_majornum = register_chrdev(0, DEVICE_NAME, &fops);
    memset(g_inboxes[0].data, 0, MAX_ALLOWED_LEN);
    memset(g_inboxes[1].data, 0, MAX_ALLOWED_LEN);
-   strncpy(g_inboxes[0].data, MSG0, MAX_ALLOWED_LEN);
-   strncpy(g_inboxes[1].data, MSG1, MAX_ALLOWED_LEN);
-
-   //sema_init(&g_inboxes[0].sem, 0);
-   //sema_init(&g_inboxes[1].sem, 0);
+   memset(g_inboxes[0].msglen, 0, 10);
+   memset(g_inboxes[1].msglen, 0, 10);
 
    if( g_majornum < 0 )
    {
@@ -144,8 +138,8 @@ static int __init sec412_char_init(void)
    // NOTE:
    // The MKDEV takes a major/minor pair and creates an appropriate device number
    //
-   sec412a_device = device_create(sec412_class, NULL, MKDEV(g_majornum, 0), NULL, DEVICE_NAME);
-   if( IS_ERR(sec412a_device))
+   sec412_device = device_create(sec412_class, NULL, MKDEV(g_majornum, 0), NULL, DEVICE_NAME);
+   if( IS_ERR(sec412_device))
    {
       class_destroy(sec412_class);
 
@@ -153,22 +147,10 @@ static int __init sec412_char_init(void)
 
       printk("[-] Failed to create device class\n");
 
-      return PTR_ERR(sec412a_device);
+      return PTR_ERR(sec412_device);
    }
 
-   //sec412b_device = device_create(sec412_class, NULL, MKDEV(g_majornum, 1), NULL, DEVICE_NAME);
 
-   //if( IS_ERR(sec412b_device))
-   //{
-	  //device_destroy(sec412_class, MKDEV(g_majornum, 0));     
-      //class_destroy(sec412_class);
-//
-      //unregister_chrdev(g_majornum, DEVICE_NAME);
-//
-      //printk("[-] Failed to create device class\n");
-//
-      //return PTR_ERR(sec412b_device);
-   //}
 
    printk("[+] Module successfully initialized\n");
 
@@ -186,7 +168,6 @@ static void __exit sec412_char_exit(void)
 
    // destroy the created device
    device_destroy(sec412_class, MKDEV(g_majornum, 0));     
-   //device_destroy(sec412_class, MKDEV(g_majornum, 1));     
 
    // unregister the class
    class_unregister(sec412_class);                          
@@ -230,13 +211,8 @@ static ssize_t dev_read(struct file *filp, char *buffer, size_t len, loff_t *off
    //int error = -1;
    inbox	*inbox = filp->private_data;
 
-   //if (down_interruptible(&inbox->sem))
-   //{
-   	 //return -ERESTARTSYS;
-   //}
    if (*inbox->data == 0)
    {
-	 //up(&inbox->sem);
      return (0);
    }
    // Make sure you are only reading the requested amount!
@@ -250,7 +226,6 @@ static ssize_t dev_read(struct file *filp, char *buffer, size_t len, loff_t *off
 	 //len--;
    //}
 
-   //up(&inbox->sem);
    return (MAX_ALLOWED_LEN);
 }
 
@@ -263,60 +238,101 @@ static ssize_t dev_write(struct file *filp, const char *buffer, size_t len, loff
    int		bytes_read = 0;
    inbox	*inbox = filp->private_data;
 
-   //if (down_interruptible(&inbox->sem))
-   //{
-   		//return -ERESTARTSYS;
-   //}
+   memset(inbox->data, 0, MAX_ALLOWED_LEN);
    for (bytes_read=0; bytes_read < len && bytes_read < MAX_ALLOWED_LEN; bytes_read++)
    {
    		get_user(inbox->data[bytes_read], buffer + bytes_read);
    }
    inbox->data[bytes_read] = '\0';
-   //up(&inbox->sem);
 
    return (bytes_read);
 }
 
-long dev_ioctl(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param)
+long dev_ioctl(struct file *filp, unsigned int ioctl_num, unsigned long ioctl_param)
 {
     int i = 0;
     int error = 0;
     char *temp = NULL;
-    char ch;
+	inbox	*inbox = filp->private_data;
 
     printk("[*] Usermode is requesting %08x ioctl\n", ioctl_num);
 
     switch (ioctl_num) 
     {
-        case IOCTL_READ_FROM_KERNEL:
+		case IOCTL_READ_MSGLEN_FROM_KERNEL:
             printk("[*]    IOCTL_READ_FROM_KERNEL\n");
-            // 
-            //  The code below is not safe..be sure to fix it properly
-            //  if you use it
-            // 
+			if (!inbox->msglen[0])
+			{
+				return (0);
+			}
             temp = (char *)ioctl_param;
-            error= copy_to_user(temp, g_buffer, MAX_ALLOWED_LEN);
+            error = copy_to_user(temp, inbox->msglen, 10);
+			if (error)
+				return (error);
 
-            printk("[+]    The message is %s\n", g_buffer );
+            break;
+		case IOCTL_WRITE_MSGLEN_TO_KERNEL:
+            error = copy_from_user(inbox->msglen, (char*)ioctl_param, 10);
+			if (error)
+				return (error);
+			break ;
+
+        case IOCTL_READ_KEY_FROM_KERNEL:
+            printk("[*]    IOCTL_READ_FROM_KERNEL\n");
+			if (!inbox->key[0])
+			{
+				return (-1);
+			}
+            temp = (char *)ioctl_param;
+            error = copy_to_user(temp, inbox->key, MAX_KEY_LEN);
+			if (error)
+				return (error);
 
             break;
 
-        case IOCTL_WRITE_TO_KERNEL:
-            printk("[*]    IOCTL_WRITE_TO_KERNEL\n");
+        case IOCTL_READ_IV_FROM_KERNEL:
+            printk("[*]    IOCTL_READ_FROM_KERNEL\n");
+			if (!inbox->iv[0])
+			{
+				return (-1);
+			}
             temp = (char *)ioctl_param;
-            get_user(ch, temp);
-            for (i = 0; ch && i < MAX_ALLOWED_LEN; i++, temp++)
-                get_user(ch, temp);
+            error = copy_to_user(temp, inbox->iv, MAX_IV_LEN);
+			if (error)
+				return (error);
+
+            break;
+
+        case IOCTL_WRITE_KEY_TO_KERNEL:
+            printk("[*]    IOCTL_WRITE_TO_KERNEL\n");
+            //temp = (char *)ioctl_param;
+            //for (i = 0; i < MAX_KEY_LEN; i++)
+                //get_user(inbox->key[i], temp + i);
+            error = copy_from_user(inbox->key, (char*)ioctl_param, MAX_KEY_LEN);
+			if (error)
+				return (error);
+
+            printk("[+]    The length passed in is %d\n", i );
+
+            break;
+
+        case IOCTL_WRITE_IV_TO_KERNEL:
+            printk("[*]    IOCTL_WRITE_TO_KERNEL\n");
+            //temp = (char *)ioctl_param;
+            //for (i = 0; i < MAX_IV_LEN; i++)
+                //get_user(inbox->iv[i], temp + i);
+
+            error = copy_from_user(inbox->iv, (char*)ioctl_param, MAX_IV_LEN);
+			if (error)
+				return (error);
 
             // 
             //  The code below is not safe..be sure to fix it properly
             //  if you use it
             // 
-            memset( g_buffer, 0, MAX_ALLOWED_LEN );
-            error= copy_from_user(g_buffer, (char*)ioctl_param, i);
+            //error= copy_from_user(g_buffer, (char*)ioctl_param, i);
 
             printk("[+]    The length passed in is %d\n", i );
-            printk("[+]    The message is %s\n", g_buffer );
 
             break;
 

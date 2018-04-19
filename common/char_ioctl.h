@@ -6,12 +6,16 @@
 #ifndef SEC412_OSS_CHAR_H
 #define SEC412_OSS_CHAR_H
 
+// Both usermode and the driver need this information
+// so it makes more sense to include it here.
+#define MAX_ALLOWED_LEN 1024
+
 //
 // This header is required for ioctl functionality
 //
 #include <linux/ioctl.h>
 
-#define DEVICE_NAME "dog_oss_char"
+#define DEVICE_NAME "sec412_char"
 
 //
 // The below comments are taken from Documentation/ioctl/ioctl-number.txt
@@ -61,10 +65,10 @@
 #define SEC412_IOCTL_BASE_SEQ 0 
 
 // read from kernel sequence number is base + 1
-#define SEC412_IOCTL_RFK (SEC412_IOCTL_BASE_SEQ + 1)
+//#define SEC412_IOCTL_RFK (SEC412_IOCTL_BASE_SEQ + 1)
 
 // write to kernel sequence number is base + 2
-#define SEC412_IOCTL_WTK (SEC412_IOCTL_BASE_SEQ + 2)
+//#define SEC412_IOCTL_WTK (SEC412_IOCTL_BASE_SEQ + 2)
 
 //
 // _IOR() creates an IOCTL that is reading from the kernel
@@ -72,9 +76,12 @@
 //        
 // The last argument might be better suited as a structure!
 // 
-#define IOCTL_READ_FROM_KERNEL _IOR(SEC412_IOCTL_MAGIC, SEC412_IOCTL_RFK, char *)
-
-#define IOCTL_WRITE_TO_KERNEL _IOWR(SEC412_IOCTL_MAGIC, SEC412_IOCTL_WTK, char *)
+#define IOCTL_READ_KEY_FROM_KERNEL _IOR(SEC412_IOCTL_MAGIC, 1, char *)
+#define IOCTL_WRITE_KEY_TO_KERNEL _IOWR(SEC412_IOCTL_MAGIC, 2, char *)
+#define IOCTL_READ_IV_FROM_KERNEL _IOR(SEC412_IOCTL_MAGIC, 3, char *)
+#define IOCTL_WRITE_IV_TO_KERNEL _IOWR(SEC412_IOCTL_MAGIC, 4, char *)
+#define IOCTL_READ_MSGLEN_FROM_KERNEL _IOR(SEC412_IOCTL_MAGIC, 5, char *)
+#define IOCTL_WRITE_MSGLEN_TO_KERNEL _IOWR(SEC412_IOCTL_MAGIC, 6, char *)
 
 
 #endif // SEC412_OSS_CHAR_H
