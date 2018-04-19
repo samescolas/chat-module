@@ -354,6 +354,8 @@ static int dev_release(struct inode *inode, struct file *filp){
    memset(g_inboxes[1].key, 0, 32);
    memset(g_inboxes[0].iv, 0, 16);
    memset(g_inboxes[1].iv, 0, 16);
+   memset(g_inboxes[0].data, 0, MAX_ALLOWED_LEN);
+   memset(g_inboxes[1].data, 0, MAX_ALLOWED_LEN);
    printk("[*] Releasing the file\n");
 
    return 0;

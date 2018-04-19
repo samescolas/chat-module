@@ -1,7 +1,0 @@
-example of encryption using crypto API: http://www.logix.cz/michal/devel/cryptodev/cryptodev-20091126/cryptodev.c
-
-Load module into kernel: insmod __NAME_OF_MODULE.ko__
-Remove module from kernel: rmmod __NAME_OF_MODULE__
-
-To create /dev file:
-	mknod /dev/__NAME__ c __MAJOR_NUMBER__ 0

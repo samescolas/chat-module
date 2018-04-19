@@ -1,8 +1,7 @@
+#include "./chat.h"
 #include <openssl/conf.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
-#include <openssl/rand.h>
-#include <string.h>
 
 void handleErrors(void)
 {
@@ -10,8 +9,7 @@ void handleErrors(void)
   abort();
 }
 
-int encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key,
-  unsigned char *iv, unsigned char *ciphertext)
+int encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key, unsigned char *iv, unsigned char *ciphertext)
 {
   EVP_CIPHER_CTX *ctx;
 
@@ -49,8 +47,7 @@ int encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key,
   return ciphertext_len;
 }
 
-int decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key,
-  unsigned char *iv, unsigned char *plaintext)
+int decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key, unsigned char *iv, unsigned char *plaintext)
 {
   EVP_CIPHER_CTX *ctx;
 
@@ -86,64 +83,4 @@ int decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key,
   EVP_CIPHER_CTX_free(ctx);
 
   return plaintext_len;
-}
-
-int main (void)
-{
-  unsigned char key[32];
-  unsigned char iv[16];
-
-  if (!RAND_bytes(key, 32))
-  {
-  	printf("Error assigning key.\n");
-  }
-  else
-  {
-  	printf("Assigned random key %s\n", key);
-  }
-  if (!RAND_bytes(iv, 16))
-  {
-  	printf("Error assigning iv.\n");
-  }
-  else
-  {
-  	printf("Assigned IV %s\n", iv);
-  }
-
-  /* Message to be encrypted */
-  unsigned char *plaintext =
-                (unsigned char *)"The quick brown fox jumps over the lazy dog";
-
-  /* Buffer for ciphertext. Ensure the buffer is long enough for the
-   * ciphertext which may be longer than the plaintext, dependant on the
-   * algorithm and mode
-   */
-  unsigned char ciphertext[128];
-
-  /* Buffer for the decrypted text */
-  unsigned char decryptedtext[128];
-
-  int decryptedtext_len, ciphertext_len;
-
-/* Encrypt the plaintext */
-  ciphertext_len = encrypt (plaintext, strlen ((char *)plaintext), key, iv,
-                            ciphertext);
-
-  /* Do something useful with the ciphertext here */
-  printf("Ciphertext is:\n");
-  BIO_dump_fp (stdout, (const char *)ciphertext, ciphertext_len);
-
-  /* Decrypt the ciphertext */
-  decryptedtext_len = decrypt(ciphertext, 128, key, iv,
-    decryptedtext);
-
-  /* Add a NULL terminator. We are expecting printable text */
-  decryptedtext[decryptedtext_len] = '\0';
-
-  /* Show the decrypted text */
-  printf("Decrypted text is:\n");
-  printf("%s\n", decryptedtext);
-
-
-  return 0;
 }
