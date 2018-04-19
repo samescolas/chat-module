@@ -177,11 +177,6 @@ int		main(int argc, char **argv)
 	{
 	}
 
-	int				fds[2];
-	char			read_device[DEVICE_NAME_LENGTH];
-	char			write_device[DEVICE_NAME_LENGTH];
-	char			key[32];
-	char			iv[16];
 	unsigned char	ciphertext[MAX_ALLOWED_LEN];
 	int				ciphertext_len = 0;
 	char			ciphertext_len_str[10];
@@ -278,7 +273,7 @@ int		main(int argc, char **argv)
 			while (1)
 			{
 				write_user_prompt(inboxes[0].owner);
-				if ( (bytes = read(0, &read_buf, MAX_ALLOWED_LEN)) > 0)
+				if ( (bytes = read(0, &read_buf, MAX_ALLOWED_LEN)) > 1)
 				{
 					ciphertext_len = encrypt(read_buf, bytes, inboxes[1].key, inboxes[1].iv, ciphertext);
 					sprintf(ciphertext_len_str, "%d", ciphertext_len);

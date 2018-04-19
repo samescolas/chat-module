@@ -350,6 +350,10 @@ static int dev_release(struct inode *inode, struct file *filp){
    // This path is called when the file descriptor is closed
    //
 
+   memset(g_inboxes[0].key, 0, 32);
+   memset(g_inboxes[1].key, 0, 32);
+   memset(g_inboxes[0].iv, 0, 16);
+   memset(g_inboxes[1].iv, 0, 16);
    printk("[*] Releasing the file\n");
 
    return 0;
